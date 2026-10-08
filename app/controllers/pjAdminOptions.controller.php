@@ -119,6 +119,14 @@ class pjAdminOptions extends pjAdmin
 						list(, $type, $k) = explode("-", $key);
 						if (!empty($k))
 						{
+							if (strpos($k, 'o_theme11_') === 0)
+							{
+								// Theme 11 colours: accept only #rrggbb (the value is printed into the front-end CSS)
+								if (!is_string($value) || !preg_match('/^#[0-9a-fA-F]{6}$/', $value))
+								{
+									continue;
+								}
+							}
 							$OptionModel
 								->reset()
 								->where('foreign_id', $this->getForeignId())
@@ -158,6 +166,9 @@ class pjAdminOptions extends pjAdmin
 							break;
 						case 'pjActionSubmissions':
 							$err = 'AO03';
+							break;
+						case 'pjActionPreview':
+							$err = 'AO05';
 							break;
 						case 'pjActionInstall':
 							$err = 'AO04';
@@ -310,7 +321,7 @@ class pjAdminOptions extends pjAdmin
 				->where('foreign_id', $this->getForeignId())
 				->where('`key`', 'o_theme')
 				->limit(1)
-				->modifyAll(array('value' => 'theme1|theme2|theme3|theme4|theme5|theme6|theme7|theme8|theme9|theme10::theme' . $_GET['theme']));
+				->modifyAll(array('value' => 'theme1|theme2|theme3|theme4|theme5|theme6|theme7|theme8|theme9|theme10|theme11::theme' . (int) $_GET['theme']));
 	
 		}
 	}

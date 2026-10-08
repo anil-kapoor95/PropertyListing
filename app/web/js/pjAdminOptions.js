@@ -286,6 +286,11 @@ var jQuery_1_8_2 = jQuery_1_8_2 || $.noConflict();
 				async: false,
 				url: 'index.php?controller=pjAdminOptions&action=pjActionUpdateTheme&theme=' + theme,
 				success: function (data) {
+					if (String(theme) === '11' || $('#pjT11Panel').length > 0) {
+						// the Theme 11 colour panel is shown only while Theme 11 is active
+						window.location.reload();
+						return;
+					}
 					$('.theme-holder').html(data);
 					$('.pj-loader').css('display', 'none');
 				}

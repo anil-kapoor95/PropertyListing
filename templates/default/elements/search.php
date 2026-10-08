@@ -1,4 +1,9 @@
 <?php
+$t11_theme = isset($controller) ? $controller->getTheme() : false;
+if (!$t11_theme && isset($tpl['option_arr']['o_theme'])) { $t11_theme = $tpl['option_arr']['o_theme']; }
+if ($t11_theme === 'theme11') { include dirname(dirname(__FILE__)) . '/theme11/elements/search.php'; return; }
+?>
+<?php
 $types = __('front_types', true);
 $property_bedrooms = array(0 => '0', 1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6', 7 => '7', 8 => '8', 9 => '9', 10 => '>10');
 $property_bathrooms = array(0 => '0', 1 => '1', '1.5' => '1.5', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '>5'); 

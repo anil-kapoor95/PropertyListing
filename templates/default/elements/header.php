@@ -1,3 +1,8 @@
+<?php
+$t11_theme = isset($controller) ? $controller->getTheme() : false;
+if (!$t11_theme && isset($tpl['option_arr']['o_theme'])) { $t11_theme = $tpl['option_arr']['o_theme']; }
+if ($t11_theme === 'theme11') { include dirname(dirname(__FILE__)) . '/theme11/elements/header.php'; return; }
+?>
 <ul class="nav nav-tabs pjPplHeading">
 	<?php
 	if ($tpl['option_arr']['o_seo_url'] == 'No')
