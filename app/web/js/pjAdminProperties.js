@@ -314,6 +314,32 @@ var jQuery_1_8_2 = jQuery_1_8_2 || $.noConflict();
 				$('.paypalPaymentForm').html(data);
 				$('.modal-dialog').css("z-index", "9999");
 			});
+		}).on("click", ".btnPaymentStripe", function (e) {
+			if (e && e.preventDefault) {
+				e.preventDefault();
+			}
+			var $btn = $(this),
+				$err = $('.stripePaymentError');
+			if ($btn.prop('disabled')) {
+				return false;
+			}
+			$err.hide().text('');
+			$('.btnPaymentStripe').prop('disabled', true);
+			$.post("index.php?controller=pjAdminProperties&action=pjActionStripeCheckout", {
+				property_id: $btn.attr('data-property_id'),
+				period_id: $btn.attr('data-period_id')
+			}).done(function (data) {
+				if (data && data.status === 'OK' && data.url) {
+					window.location.href = data.url;
+					return;
+				}
+				$('.btnPaymentStripe').prop('disabled', false);
+				$err.text(data && data.text ? data.text : '').css({color: '#b3382c', fontWeight: 'bold'}).show();
+			}).fail(function () {
+				$('.btnPaymentStripe').prop('disabled', false);
+				$err.text('Error').css({color: '#b3382c', fontWeight: 'bold'}).show();
+			});
+			return false;
 		});
 		
 		if ($frmUpdateProperty.length > 0 && validate) {

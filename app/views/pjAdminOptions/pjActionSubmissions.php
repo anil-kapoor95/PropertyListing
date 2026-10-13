@@ -45,8 +45,15 @@ if (isset($tpl['status']))
 				for ($i = 0; $i < $count; $i++)
 				{
 					if ($tpl['arr'][$i]['tab_id'] != 2 || (int) $tpl['arr'][$i]['is_visible'] === 0) continue;
+					$rowClass = NULL;
+					$rowStyle = NULL;
+					if (in_array($tpl['arr'][$i]['key'], array('o_stripe_secret_key', 'o_stripe_api_key')))
+					{
+						$rowClass = " boxStripe";
+						$rowStyle = (isset($tpl['option_arr']['o_allow_stripe']) && $tpl['option_arr']['o_allow_stripe'] == 'Yes') ? NULL : "display: none";
+					}
 					?>
-					<tr class="pj-table-row-odd">
+					<tr class="pj-table-row-odd<?php echo $rowClass; ?>" style="<?php echo $rowStyle; ?>">
 						<td>
 							<?php
 							if($tpl['arr'][$i]['key'] == 'o_owner_is_active'){
@@ -74,6 +81,12 @@ if (isset($tpl['status']))
 											</span>
 											<?php
 											break;
+										case 'o_stripe_secret_key':
+											?><input type="password" name="value-<?php echo $tpl['arr'][$i]['type']; ?>-<?php echo $tpl['arr'][$i]['key']; ?>" class="pj-form-field w300" value="<?php echo pjSanitize::html($tpl['arr'][$i]['value']); ?>" autocomplete="new-password" placeholder="sk_live_..." /><?php
+											break;
+										case 'o_stripe_api_key':
+											?><input type="text" name="value-<?php echo $tpl['arr'][$i]['type']; ?>-<?php echo $tpl['arr'][$i]['key']; ?>" class="pj-form-field w300" value="<?php echo pjSanitize::html($tpl['arr'][$i]['value']); ?>" placeholder="pk_live_..." /><?php
+											break;
 										default:
 										    ?><input type="text" name="value-<?php echo $tpl['arr'][$i]['type']; ?>-<?php echo $tpl['arr'][$i]['key']; ?>" class="pj-form-field w200" value="<?php echo pjSanitize::html($tpl['arr'][$i]['value']); ?>" /><?php
 									}
@@ -97,7 +110,7 @@ if (isset($tpl['status']))
 									foreach ($enum as $el)
 									{
 										$option_text = $el;
-										if($tpl['arr'][$i]['key'] == 'o_allow_add_property' || $tpl['arr'][$i]['key'] == 'o_owner_is_active')
+										if($tpl['arr'][$i]['key'] == 'o_allow_add_property' || $tpl['arr'][$i]['key'] == 'o_owner_is_active' || $tpl['arr'][$i]['key'] == 'o_allow_stripe')
 										{
 											$option_text = $el == 'Yes' ? $_yesno['T']: $_yesno['F'];
 										}

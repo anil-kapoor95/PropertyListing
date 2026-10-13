@@ -58,7 +58,9 @@ if (isset($tpl['status']))
 		</thead>
 		<tbody>
 		<?php
-		$pjPaypal = pjObject::getPlugin('pjPaypal') !== NULL;
+		// a payment method is offered only when it is installed AND configured
+		$pjPaypal = pjObject::getPlugin('pjPaypal') !== NULL && trim((string) $tpl['option_arr']['o_paypal_client_id']) !== '' && trim((string) $tpl['option_arr']['o_paypal_client_secret']) !== '';
+		$pjStripe = pjObject::getPlugin('pjStripe') !== NULL && isset($tpl['option_arr']['o_allow_stripe']) && $tpl['option_arr']['o_allow_stripe'] == 'Yes' && isset($tpl['option_arr']['o_stripe_secret_key']) && trim((string) $tpl['option_arr']['o_stripe_secret_key']) !== '';
 		foreach ($tpl['period_arr'] as $period)
 		{
 			if ((int) $period['days'] > 0)
@@ -74,8 +76,18 @@ if (isset($tpl['status']))
 						if ($pjPaypal)
 						{
 						    ?>
-						    <button type="button" class="btn pj-button btnPaymentRenew" data-property_id="<?php echo $_GET['id'];?>" data-period_id="<?php echo $period['id'];?>"><?php __('payment_renew_paypal');?></button>
+						    <button type="button" class="btn pj-button btnPaymentRenew" data-property_id="<?php echo (int) $tpl['arr']['id'];?>" data-period_id="<?php echo (int) $period['id'];?>"><?php __('payment_renew_paypal');?></button>
 						    <?php 
+						}
+						if ($pjStripe)
+						{
+						    ?>
+						    <button type="button" class="btn pj-button btnPaymentStripe" data-property_id="<?php echo (int) $tpl['arr']['id'];?>" data-period_id="<?php echo (int) $period['id'];?>"><?php __('payment_renew_stripe');?></button>
+						    <?php 
+						}
+						if (!$pjPaypal && !$pjStripe)
+						{
+						    ?><span class="pj-form-note"><?php __('payment_no_method'); ?></span><?php
 						}
 						?>
 						</td>
@@ -108,6 +120,7 @@ if (isset($tpl['status']))
 	</div>
 	<div id="pjWrapperPropertyListing">
 		<div class="paypalPaymentForm"></div>
+		<div class="stripePaymentError" style="display: none; margin-top: 10px;"></div>
 	</div>
 	<?php
 }

@@ -3,6 +3,7 @@
 	<head>
 		<title>Property Listing Script by PHPJabbers.com | Print</title>
 		<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<?php
 		foreach ($controller->getCss() as $css)
 		{
@@ -11,7 +12,7 @@
 		?>
 	</head>
 	<body>
-		<div id="container" style="margin: 0 auto; width: 1024px;">
+		<div id="container" style="margin: 0 auto; max-width: 1024px;">
 			<?php require $content_tpl; ?>
 		</div>
 	</body>

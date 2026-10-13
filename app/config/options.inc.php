@@ -52,7 +52,7 @@ if (!defined("PJ_UPLOAD_PATH")) define("PJ_UPLOAD_PATH", "app/web/upload/");
 if (!defined("PJ_TEMPLATE_PATH")) define("PJ_TEMPLATE_PATH", "templates/");
 if (!defined("PJ_TEMPLATE_SCRIPT_PATH")) define("PJ_TEMPLATE_SCRIPT_PATH", "default/");
 
-if (!defined("PJ_SCRIPT_VERSION")) define("PJ_SCRIPT_VERSION", "4.1");
+if (!defined("PJ_SCRIPT_VERSION")) define("PJ_SCRIPT_VERSION", "5.0");
 if (!defined("PJ_SCRIPT_ID")) define("PJ_SCRIPT_ID", "69");
 if (!defined("PJ_SCRIPT_BUILD")) define("PJ_SCRIPT_BUILD", "4.0.0");
 if (!defined("PJ_SCRIPT_PREFIX")) define("PJ_SCRIPT_PREFIX", "property_listing_");
@@ -72,5 +72,5 @@ if (!defined("PJ_RSA_MODULO")) define("PJ_RSA_MODULO", '148152031335408696919500
 if (!defined("PJ_RSA_PRIVATE")) define("PJ_RSA_PRIVATE", '7');
 
 $CONFIG = array();
-$CONFIG['plugins'] = array('pjLocale', 'pjBackup', 'pjLog', 'pjInstaller', 'pjOneAdmin', 'pjGallery', 'pjAuthorize', 'pjPaypal', 'pjCountry', 'pjSms');
+$CONFIG['plugins'] = array('pjLocale', 'pjBackup', 'pjLog', 'pjInstaller', 'pjOneAdmin', 'pjGallery', 'pjAuthorize', 'pjPaypal', 'pjStripe', 'pjCountry', 'pjSms');
 ?>

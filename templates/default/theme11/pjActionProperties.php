@@ -24,7 +24,7 @@ $t11_total = isset($tpl['paginator']['total']) ? (int) $tpl['paginator']['total'
 			<?php
 			foreach ($tpl['arr'] as $v)
 			{
-				$image = PJ_INSTALL_URL . PJ_IMG_PATH . 'frontend/300x226.png';
+				$image = PJ_INSTALL_URL . PJ_TEMPLATE_PATH . PJ_TEMPLATE_SCRIPT_PATH . 'images/t11_no_photo.svg';
 				if (!empty($v['medium_image']) && is_file(PJ_INSTALL_PATH . $v['medium_image']))
 				{
 					$image = PJ_INSTALL_URL . $v['medium_image'];

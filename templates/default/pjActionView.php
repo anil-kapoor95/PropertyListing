@@ -299,7 +299,7 @@ $index = mt_rand(1, 9999);
 				<div class="modal-dialog">
 				    <div class="modal-content">
 				      	<div class="modal-header">
-				        	<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				        	<button type="button" class="close" data-dismiss="modal" data-pj-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
 				        	<h4 class="modal-title" id="myModalLabel"><?php __('front_request_details');?></h4>
 				      	</div>
 				      	<div class="modal-body">
@@ -343,7 +343,7 @@ $index = mt_rand(1, 9999);
 							</form>
 				      	</div>
 				      	<div class="modal-footer">
-				        	<button type="button" class="btn btn-default pjPplBtnNav" data-dismiss="modal"><?php __('front_layout1_close');?></button>
+				        	<button type="button" class="btn btn-default pjPplBtnNav" data-dismiss="modal" data-pj-dismiss="modal"><?php __('front_layout1_close');?></button>
 				        	<button type="button" class="btn btn-default btnSendContact"><?php __('front_layout1_send');?></button>
 				      	</div>
 				    </div>

@@ -343,16 +343,64 @@ class pjAppController extends pjController
 		return $result;
 	}
 	
-	public function getFromEmail($option_arr)
+	/**
+	 * Sender address used for every email: the "Sender email address" saved on the Email Settings tab
+	 * (option o_email_address), otherwise the first user's email (previous behaviour).
+	 */
+	public function getFromEmail($option_arr = NULL)
 	{
-		$email = $option_arr['o_email_address'];
-		if(empty($email))
+		if (is_null($option_arr))
 		{
-			$arr = pjUserModel::factory()->find(1)->getData();
-			$email = $arr['email'];
+			$option_arr = isset($this->option_arr) ? $this->option_arr : array();
 		}
-		return $email;
+		$email = isset($option_arr['o_email_address']) ? trim($option_arr['o_email_address']) : '';
+		if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL))
+		{
+			return $email;
+		}
+		$arr = pjUserModel::factory()->find(1)->getData();
+		return !empty($arr['email']) ? $arr['email'] : $this->getAdminEmail();
 	}
+	
+	/**
+	 * Sender name saved on the Email Settings tab (empty = no name).
+	 */
+	public function getFromName($option_arr = NULL)
+	{
+		if (is_null($option_arr))
+		{
+			$option_arr = isset($this->option_arr) ? $this->option_arr : array();
+		}
+		return isset($option_arr['o_from_name']) ? trim($option_arr['o_from_name']) : '';
+	}
+	
+	/**
+	 * Apply the transport saved on the Email Settings tab (PHP mail() or SMTP incl. security +
+	 * authentication type) to a pjEmail instance. One place for every sender.
+	 */
+	public static function applyEmailTransport($Email, $option_arr)
+	{
+		if (isset($option_arr['o_send_email']) && $option_arr['o_send_email'] == 'smtp')
+		{
+			$secure = (isset($option_arr['o_smtp_secure']) && in_array($option_arr['o_smtp_secure'], array('ssl', 'tls'))) ? $option_arr['o_smtp_secure'] : '';
+			$auth = (isset($option_arr['o_smtp_auth']) && in_array($option_arr['o_smtp_auth'], array('CRAM-MD5', 'LOGIN', 'PLAIN'))) ? $option_arr['o_smtp_auth'] : 'LOGIN';
+			$user = isset($option_arr['o_smtp_user']) ? trim($option_arr['o_smtp_user']) : '';
+			$Email
+				->setTransport('smtp')
+				->setSmtpHost(isset($option_arr['o_smtp_host']) ? trim($option_arr['o_smtp_host']) : '')
+				->setSmtpPort(isset($option_arr['o_smtp_port']) ? $option_arr['o_smtp_port'] : 25)
+				->setSmtpSecure($secure)
+				->setSmtpUser($user)
+				->setSmtpPass(isset($option_arr['o_smtp_pass']) ? $option_arr['o_smtp_pass'] : '')
+				->setSmtpAuthType($auth);
+			if ($user !== '' && filter_var($user, FILTER_VALIDATE_EMAIL))
+			{
+				$Email->setSender($user);
+			}
+		}
+		return $Email;
+	}
+	
 	public function getAdminEmail()
 	{
 		$arr = pjUserModel::factory()
@@ -373,4 +421,4 @@ class pjAppController extends pjController
 		return !empty($arr) ? (!empty($arr[0]['phone']) ? $arr[0]['phone'] : null) : null;	
 	}
 }
-?>
+?>

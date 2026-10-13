@@ -479,7 +479,7 @@ class pjAdminProperties extends pjAdmin
 					pjUtil::redirect($_SERVER['PHP_SELF'] . "?controller=pjAdminProperties&action=pjActionPayment&id=".$_POST['id']."&err=AP20");
 				}
 			}
-			pjUtil::redirect($_SERVER['PHP_SELF'] . "?controller=pjAdminProperties&action=pjActionIndex&err=AP10");
+			pjUtil::redirect($_SERVER['PHP_SELF'] . "?controller=pjAdminProperties&action=pjActionIndex&err=AP21");
 			
 		} else {
 			$this->set('status', 2);
@@ -993,18 +993,10 @@ class pjAdminProperties extends pjAdmin
 		if(!empty($arr))
 		{
 			$pjEmail = new pjEmail();
-			if ($this->option_arr['o_send_email'] == 'smtp')
-			{
-				$pjEmail
-				->setTransport('smtp')
-				->setSmtpHost($this->option_arr['o_smtp_host'])
-				->setSmtpPort($this->option_arr['o_smtp_port'])
-				->setSmtpUser($this->option_arr['o_smtp_user'])
-				->setSmtpPass($this->option_arr['o_smtp_pass'])
-				->setSender($this->option_arr['o_smtp_user']);
-			}
+			pjAppController::applyEmailTransport($pjEmail, $this->option_arr);
 			$pjEmail->setContentType('text/html');
 			$from = $this->getFromEmail($this->option_arr);
+			$from_name = $this->getFromName($this->option_arr);
 			$admin_email = $this->getAdminEmail();
 			$to_email = !empty($arr['owner_email']) ? $arr['owner_email'] : (!empty($arr['email']) ? $arr['email'] : '');
 			$to_phone = !empty($arr['owner_phone']) ? $arr['owner_phone'] : (!empty($arr['phone']) ? $arr['phone'] : '');
@@ -1040,7 +1032,7 @@ class pjAdminProperties extends pjAdmin
 						
 					$pjEmail
 						->setTo($to_email)
-						->setFrom($from)
+						->setFrom($from, $from_name)
 						->setSubject($lang_subject[0]['content'])
 						->send(pjUtil::textToHtml($message));
 				}
@@ -1069,7 +1061,7 @@ class pjAdminProperties extends pjAdmin
 					$message = str_replace($search, $replace, $lang_message[0]['content']);
 					$pjEmail
 						->setTo($admin_email)
-						->setFrom($from)
+						->setFrom($from, $from_name)
 						->setSubject($lang_subject[0]['content'])
 						->send(pjUtil::textToHtml($message));
 				}
@@ -1120,15 +1112,40 @@ class pjAdminProperties extends pjAdmin
 		}
 	}
 	
+	/**
+	 * The logged in user may pay for this property (admin / editor: any property, owner: only his own).
+	 * @return array the property, or an empty array
+	 */
+	private function getPayableProperty($property_id)
+	{
+		if (!($this->isAdmin() || $this->isEditor() || $this->isOwner()) || (int) $property_id <= 0)
+		{
+			return array();
+		}
+		$property_arr = pjPropertyModel::factory()->find((int) $property_id)->getData();
+		if (empty($property_arr))
+		{
+			return array();
+		}
+		if ($this->isOwner() && $property_arr['owner_id'] != $this->getUserId())
+		{
+			return array();
+		}
+		return $property_arr;
+	}
+	
 	public function pjActionGetPaymentForm()
 	{
 	    $this->setAjax(true);
 	    
 	    if ($this->isXHR())
 	    {
-	        if (isset($_GET['period_id']) && (int) $_GET['period_id'] > 0)
+	        $property_id = isset($_GET['property_id']) ? (int) $_GET['property_id'] : 0;
+	        $period_id = isset($_GET['period_id']) ? (int) $_GET['period_id'] : 0;
+	        $period_arr = $period_id > 0 ? pjPeriodModel::factory()->find($period_id)->getData() : array();
+	        $property_arr = $this->getPayableProperty($property_id);
+	        if (!empty($period_arr) && !empty($property_arr) && (float) $period_arr['price'] > 0)
 	        {
-	            $period_arr = pjPeriodModel::factory()->find($_GET['period_id'])->getData();
 	            $this->set('params', array(
 	                'name' => 'plPaypal',
 	                'id' => 'plPaypal',
@@ -1136,7 +1153,7 @@ class pjAdminProperties extends pjAdmin
 	                'client_id' => $this->option_arr['o_paypal_client_id'],
 	                'client_secret' => $this->option_arr['o_paypal_client_secret'],
 	                'item_name' => __('payment_period', true) .'(#'.$period_arr['id'].'): '. $period_arr['days'] .' '. __('o_days', true),
-	                'custom' => $_GET['property_id'].'-'.$_GET['period_id'],
+	                'custom' => $property_id.'-'.$period_id,
 	                'amount' => number_format($period_arr['price'], 2, '.', ''),
 	                'currency_code' => $this->option_arr['o_currency'],
 	                'return' => PJ_INSTALL_URL . "index.php?controller=pjAdminProperties&action=pjActionIndex",
@@ -1148,5 +1165,48 @@ class pjAdminProperties extends pjAdmin
 	        }
 	    }
 	}
+	
+	/**
+	 * "Pay by card": create a Stripe Checkout Session for a renewal period and return the Stripe payment page URL.
+	 */
+	public function pjActionStripeCheckout()
+	{
+		$this->setAjax(true);
+		
+		$response = array('status' => 'ERR', 'text' => '');
+		$error = __('plugin_stripe_error', true);
+		$response['text'] = (is_string($error) && $error !== '' && $error !== 'plugin_stripe_error') ? $error : 'The online payment could not be started. Please try again or contact the administrator.';
+		
+		if ($this->isXHR() && isset($_POST['property_id']) && isset($_POST['period_id']))
+		{
+			$property_arr = $this->getPayableProperty($_POST['property_id']);
+			$period_arr = pjPeriodModel::factory()->find((int) $_POST['period_id'])->getData();
+			$secret = isset($this->option_arr['o_stripe_secret_key']) ? trim((string) $this->option_arr['o_stripe_secret_key']) : '';
+			if (!empty($property_arr) && !empty($period_arr) && (int) $period_arr['days'] > 0 && (float) $period_arr['price'] > 0
+				&& pjObject::getPlugin('pjStripe') !== NULL && isset($this->option_arr['o_allow_stripe']) && $this->option_arr['o_allow_stripe'] == 'Yes' && $secret !== '')
+			{
+				$hash = sha1($property_arr['id'] . '-' . $period_arr['id'] . '-' . strtotime($property_arr['created']) . PJ_SALT);
+				$user_arr = pjUserModel::factory()->find($this->getUserId())->getData();
+				$base = PJ_INSTALL_URL . 'index.php?controller=';
+				$result = $this->requestAction(array('controller' => 'pjStripe', 'action' => 'pjActionCreateSession', 'params' => array(
+					'key' => md5($this->option_arr['private_key'] . PJ_SALT),
+					'secret_key' => $secret,
+					'reference' => $property_arr['id'] . '-' . $period_arr['id'],
+					'amount' => $period_arr['price'],
+					'currency' => $this->option_arr['o_currency'],
+					'description' => $property_arr['ref_id'] . ' - ' . (int) $period_arr['days'] . ' ' . __('lblDays', true),
+					'email' => !empty($user_arr['email']) ? $user_arr['email'] : '',
+					'success_url' => $base . 'pjListings&action=pjActionConfirmStripe&property_id=' . $property_arr['id'] . '&period_id=' . $period_arr['id'] . '&hash=' . $hash . '&stripe_sid={CHECKOUT_SESSION_ID}',
+					'cancel_url' => $base . 'pjAdminProperties&action=pjActionPayment&id=' . $property_arr['id']
+				)), array('return'));
+				if (is_array($result) && $result['status'] === 'OK' && !empty($result['url']))
+				{
+					$response = array('status' => 'OK', 'url' => $result['url']);
+				} else {
+					$this->log('Stripe: could not start Checkout for property #' . $property_arr['id'] . ' - ' . (is_array($result) && isset($result['text']) ? $result['text'] : ''));
+				}
+			}
+		}
+		pjAppController::jsonResponse($response);
+	}
 }
-?>

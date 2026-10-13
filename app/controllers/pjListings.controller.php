@@ -302,18 +302,10 @@ class pjListings extends pjFront
 		if(isset($_POST['send']))
 		{
 			$pjEmail = new pjEmail();
-			if ($this->option_arr['o_send_email'] == 'smtp')
-			{
-				$pjEmail
-				->setTransport('smtp')
-				->setSmtpHost($this->option_arr['o_smtp_host'])
-				->setSmtpPort($this->option_arr['o_smtp_port'])
-				->setSmtpUser($this->option_arr['o_smtp_user'])
-				->setSmtpPass($this->option_arr['o_smtp_pass'])
-				->setSender($this->option_arr['o_smtp_user']);
-			}
+			pjAppController::applyEmailTransport($pjEmail, $this->option_arr);
 			$pjEmail->setContentType('text/html');
 			$from = $this->getFromEmail($this->option_arr);
+			$from_name = $this->getFromName($this->option_arr);
 			
 			if($_POST['send'] == 'email')
 			{
@@ -370,7 +362,7 @@ class pjListings extends pjFront
 					$subject = stripslashes($_POST['subject']);
 					$message = pjUtil::textToHtml(stripslashes($_POST['message']));
 					$pjEmail
-						->setFrom($from)
+						->setFrom($from, $from_name)
 						->setTo($to)
 						->setSubject($subject)
 						->send($message);
@@ -464,6 +456,43 @@ class pjListings extends pjFront
 		}
 	}
 	
+	/**
+	 * A verified payment arrived for a property: record it and (re)publish the property.
+	 * The new period starts today, or at the current expiry date when the property is still running,
+	 * so renewing an already expired property really makes it active again.
+	 *
+	 * @return string the new expiry date (Y-m-d)
+	 */
+	protected function extendPaidListing($property_arr, $period_arr, $txn_id)
+	{
+		$today = date("Y-m-d");
+		$date_from = $today;
+		if (!empty($property_arr['expire']) && $property_arr['expire'] != '0000-00-00' && $property_arr['expire'] > $today)
+		{
+			$date_from = $property_arr['expire'];
+		}
+		$days = (int) $period_arr['days'];
+		$date_to = date("Y-m-d", strtotime($date_from . " +" . $days . " days"));
+		
+		pjPaymentModel::factory()
+			->setAttributes(array(
+				'property_id' => $property_arr['id'],
+				'date_from' => $date_from,
+				'date_to' => $date_to,
+				'txn_id' => $txn_id,
+				'price' => (float) $period_arr['price']
+			))
+			->insert();
+		pjPropertyModel::factory()
+			->set('id', $property_arr['id'])
+			->modify(array(
+				'last_extend' => 'paid',
+				'status' => 'E',
+				'expire' => $date_to
+			));
+		return $date_to;
+	}
+	
 	public function pjActionConfirmPayment()
 	{
 		$this->setAjax(true);
@@ -479,29 +508,28 @@ class pjListings extends pjFront
 		if ($post) {
 		    $_REQUEST = array_merge($_REQUEST, $post);
 		}
-		list($property_id, $period_id) = explode('-', $_REQUEST['custom']);
+		if (!isset($_REQUEST['custom']) || !preg_match('/^(\d+)-(\d+)$/', $_REQUEST['custom'], $m))
+		{
+			$this->log('Paypal: invalid custom value');
+			pjAppController::jsonResponse(array('status' => 'ERR', 'text' => 'Invalid request'));
+		}
+		$property_id = (int) $m[1];
+		$period_id = (int) $m[2];
 		
 		$pjPaymentModel = pjPaymentModel::factory();
-		$pjPropertyModel = pjPropertyModel::factory();
-		
-		$property_arr = $pjPropertyModel->find($property_id)->getData();
-		$payment_arr = $pjPaymentModel->where('t1.property_id', $property_id)->orderBy('t1.date_to DESC')->limit(1)->findAll()->getData();
+		$property_arr = pjPropertyModel::factory()->find($property_id)->getData();
 		$period_arr = pjPeriodModel::factory()->find($period_id)->getData();
-		$date_from = date("Y-m-d");
-		if (count($payment_arr) === 1)
+		// nothing is charged for a property or period that does not exist
+		if (empty($property_arr) || empty($period_arr))
 		{
-			$date_from = $payment_arr[0]['date_to'];
+			$this->log('Paypal: property #' . $property_id . ' or period #' . $period_id . ' not found');
+			pjAppController::jsonResponse(array('status' => 'ERR', 'text' => 'Invalid property or period'));
 		}
-		
-		$period = (int) $period_arr['days'];
 		$price = (float) $period_arr['price'];
-		list($year, $month, $day) = explode("-", $date_from);
-		$date_to = date("Y-m-d", mktime(0, 0, 0, $month, $day + $period, $year));
 		
 		$params = array(
 		    'request'		=> $_REQUEST,
 		    'cancel_hash'	=> sha1($property_arr['id'].strtotime($property_arr['created']).PJ_SALT),
-		    'txn_id' => @$payment_arr['txn_id'],
 		    'paypal_address' => $this->option_arr['o_paypal_address'],
 		    'deposit' => $price,
 		    'currency' => $this->option_arr['o_currency'],
@@ -511,28 +539,7 @@ class pjListings extends pjFront
 		if ($response !== FALSE && isset($response['status']) && $response['status'] === 'OK')
 		{
 			$this->log('pjPaypal > pjActionConfirm > status == OK');
-			$pjPaymentModel
-				->reset()
-				->setAttributes(array(
-					'property_id' => $property_arr['id'],
-					'date_from' => $date_from,
-					'date_to' => $date_to,
-					'txn_id' => $response['transaction_id'],
-					'price' => $price
-				))
-				->insert();
-			$current = time();
-			if (!empty($property_arr['expire']) && $property_arr['expire'] != '0000-00-00')
-			{
-				$current = strtotime($property_arr['expire']);
-			}
-			pjPropertyModel::factory()
-				->set('id', $property_arr['id'])
-				->modify(array(
-					'last_extend' => 'paid',
-					'status' => 'E',
-					'expire' => date("Y-m-d", $current + $period * 86400)
-				));
+			$this->extendPaidListing($property_arr, $period_arr, $response['transaction_id']);
 			$this->log('Payment confirmed');
 			pjAppController::jsonResponse(array('status' => 'OK', 'text' => 'Payment confirmed'));
 		} elseif (!$response) {
@@ -542,6 +549,80 @@ class pjListings extends pjFront
 			$this->log('Payment not confirmed');
 			pjAppController::jsonResponse(array('status' => 'ERR', 'text' => 'Payment not confirmed'));
 		}
+	}
+	
+	/**
+	 * Stripe Checkout "success_url": the customer comes back from Stripe's payment page.
+	 * The payment is verified with Stripe (never trusted from the URL) and applied only once per Checkout Session.
+	 */
+	public function pjActionConfirmStripe()
+	{
+		$back = PJ_INSTALL_URL . 'index.php?controller=pjAdminProperties&action=pjActionIndex';
+		$fail = $back . '&err=AP22';
+		
+		if (pjObject::getPlugin('pjStripe') === NULL)
+		{
+			$this->log('Stripe plugin not installed');
+			pjUtil::redirect($fail);
+		}
+		$property_arr = pjPropertyModel::factory()->find(isset($_GET['property_id']) ? (int) $_GET['property_id'] : 0)->getData();
+		$period_arr = pjPeriodModel::factory()->find(isset($_GET['period_id']) ? (int) $_GET['period_id'] : 0)->getData();
+		if (empty($property_arr) || empty($period_arr))
+		{
+			$this->log('Stripe: no such property or period');
+			pjUtil::redirect($fail);
+		}
+		$expected = sha1($property_arr['id'] . '-' . $period_arr['id'] . '-' . strtotime($property_arr['created']) . PJ_SALT);
+		if (!isset($_GET['hash']) || !is_string($_GET['hash']) || !hash_equals($expected, $_GET['hash']))
+		{
+			$this->log('Stripe: invalid hash');
+			pjUtil::redirect($fail);
+		}
+		$price = (float) $period_arr['price'];
+		if ($price <= 0)
+		{
+			$this->log('Stripe: period #' . $period_arr['id'] . ' is free');
+			pjUtil::redirect($fail);
+		}
+		
+		$key = md5($this->option_arr['private_key'] . PJ_SALT);
+		$session_id = isset($_GET['stripe_sid']) && is_string($_GET['stripe_sid']) ? $_GET['stripe_sid'] : '';
+		$response = $this->requestAction(array('controller' => 'pjStripe', 'action' => 'pjActionConfirm', 'params' => array(
+			'key' => $key,
+			'secret_key' => isset($this->option_arr['o_stripe_secret_key']) ? $this->option_arr['o_stripe_secret_key'] : '',
+			'session_id' => $session_id,
+			'reference' => $property_arr['id'] . '-' . $period_arr['id'],
+			'amount' => $price,
+			'currency' => $this->option_arr['o_currency']
+		)), array('return'));
+		
+		if (is_array($response) && $response['status'] === 'OK')
+		{
+			// atomic: only the first request for this Checkout Session gets TRUE (a page refresh must not extend twice)
+			$first = $this->requestAction(array('controller' => 'pjStripe', 'action' => 'pjActionSave', 'params' => array(
+				'key' => $key,
+				'foreign_id' => $property_arr['id'],
+				'session_id' => $response['session_id'],
+				'payment_intent' => $response['transaction_id'],
+				'amount' => $price,
+				'currency' => $this->option_arr['o_currency'],
+				'status' => 'paid',
+				'email' => $response['email']
+			)), array('return'));
+			if ($first === true)
+			{
+				$this->extendPaidListing($property_arr, $period_arr, $response['transaction_id']);
+				$this->log('Stripe: property #' . $property_arr['id'] . ' extended (' . $response['transaction_id'] . ')');
+			} else {
+				$this->log('Stripe: session ' . $response['session_id'] . ' was already processed');
+			}
+			pjUtil::redirect($back . '&err=AP21');
+		} elseif (is_array($response) && $response['status'] === 'PENDING') {
+			$this->log('Stripe: payment for property #' . $property_arr['id'] . ' is not completed yet');
+		} else {
+			$this->log('Stripe: payment for property #' . $property_arr['id'] . ' could not be verified');
+		}
+		pjUtil::redirect($fail);
 	}
 
 	public function pjActionRequestEmail($post)
@@ -553,6 +634,7 @@ class pjListings extends pjFront
 			->find($post['id'])
 			->getData();
 		$from = $this->getFromEmail($this->option_arr);
+			$from_name = $this->getFromName($this->option_arr);
 		$admin_email = $this->getAdminEmail();
 		
 		$search = array("{RefID}", "{Name}", "{Email}", "{Phone}", "{Message}");
@@ -562,16 +644,7 @@ class pjListings extends pjFront
 		$owner_phone = !empty($arr['owner_phone']) ? $arr['owner_phone'] : $arr['phone'];
 				
 		$pjEmail = new pjEmail();
-		if ($this->option_arr['o_send_email'] == 'smtp')
-		{
-			$pjEmail
-			->setTransport('smtp')
-			->setSmtpHost($this->option_arr['o_smtp_host'])
-			->setSmtpPort($this->option_arr['o_smtp_port'])
-			->setSmtpUser($this->option_arr['o_smtp_user'])
-			->setSmtpPass($this->option_arr['o_smtp_pass'])
-			->setSender($this->option_arr['o_smtp_user']);
-		}
+		pjAppController::applyEmailTransport($pjEmail, $this->option_arr);
 		$pjEmail->setContentType('text/html');
 		
 		$pjMultiLangModel = pjMultiLangModel::factory();
@@ -600,7 +673,7 @@ class pjListings extends pjFront
 				
 				$pjEmail
 					->setTo($owner_email)
-					->setFrom($from)
+					->setFrom($from, $from_name)
 					->setSubject($lang_subject[0]['content'])
 					->send(pjUtil::textToHtml($message));
 				
@@ -652,7 +725,7 @@ class pjListings extends pjFront
 				$message = str_replace($search, $replace, $lang_message[0]['content']);
 				$pjEmail
 					->setTo($admin_email)
-					->setFrom($from)
+					->setFrom($from, $from_name)
 					->setSubject($lang_subject[0]['content'])
 					->send(pjUtil::textToHtml($message));
 			}
@@ -665,18 +738,10 @@ class pjListings extends pjFront
 		if(!empty($arr))
 		{
 			$pjEmail = new pjEmail();
-			if ($this->option_arr['o_send_email'] == 'smtp')
-			{
-				$pjEmail
-					->setTransport('smtp')
-					->setSmtpHost($this->option_arr['o_smtp_host'])
-					->setSmtpPort($this->option_arr['o_smtp_port'])
-					->setSmtpUser($this->option_arr['o_smtp_user'])
-					->setSmtpPass($this->option_arr['o_smtp_pass'])
-					->setSender($this->option_arr['o_smtp_user']);
-			}
+			pjAppController::applyEmailTransport($pjEmail, $this->option_arr);
 			$pjEmail->setContentType('text/html');
 			$from = $this->getFromEmail($this->option_arr);
+			$from_name = $this->getFromName($this->option_arr);
 			$admin_email = $this->getAdminEmail();
 			$search = array("{Name}", "{Email}", "{Password}", "{Phone}");
 			$replace = array($arr['name'], $arr['email'], $arr['password'], $arr['phone']);
@@ -707,7 +772,7 @@ class pjListings extends pjFront
 			
 					$pjEmail
 						->setTo($arr['email'])
-						->setFrom($from)
+						->setFrom($from, $from_name)
 						->setSubject($lang_subject[0]['content'])
 						->send(pjUtil::textToHtml($message));
 				}
@@ -736,7 +801,7 @@ class pjListings extends pjFront
 					$message = str_replace($search, $replace, $lang_message[0]['content']);
 					$pjEmail
 						->setTo($admin_email)
-						->setFrom($from)
+						->setFrom($from, $from_name)
 						->setSubject($lang_subject[0]['content'])
 						->send(pjUtil::textToHtml($message));
 				}
@@ -793,18 +858,10 @@ class pjListings extends pjFront
 		if(!empty($arr))
 		{
 			$pjEmail = new pjEmail();
-			if ($this->option_arr['o_send_email'] == 'smtp')
-			{
-				$pjEmail
-					->setTransport('smtp')
-					->setSmtpHost($this->option_arr['o_smtp_host'])
-					->setSmtpPort($this->option_arr['o_smtp_port'])
-					->setSmtpUser($this->option_arr['o_smtp_user'])
-					->setSmtpPass($this->option_arr['o_smtp_pass'])
-					->setSender($this->option_arr['o_smtp_user']);
-			}
+			pjAppController::applyEmailTransport($pjEmail, $this->option_arr);
 			$pjEmail->setContentType('text/html');
 			$from = $this->getFromEmail($this->option_arr);
+			$from_name = $this->getFromName($this->option_arr);
 			$admin_email = $this->getAdminEmail();
 			$search = array("{Name}", "{Password}");
 			$replace = array($arr['name'], $arr['password']);
@@ -834,7 +891,7 @@ class pjListings extends pjFront
 					$message = str_replace($search, $replace, $lang_message[0]['content']);
 					$pjEmail
 						->setTo($arr['email'])
-						->setFrom($from)
+						->setFrom($from, $from_name)
 						->setSubject($lang_subject[0]['content'])
 						->send(pjUtil::textToHtml($message));
 				}
@@ -1189,4 +1246,4 @@ class pjListings extends pjFront
 		return $arr;
 	}
 }
-?>
+?>

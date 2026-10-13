@@ -1,0 +1,5 @@
+Version 1.1.0 (PropertyListing)
+---------------------------------------
+	- ported from the Service Booking Script: Stripe Checkout for property renewals (Extend expire date)
+	- options: Allow payments with Stripe checkout, Stripe secret key, Stripe public key
+	- no webhook; a payment is applied only once (UNIQUE session id), amount/currency/reference are verified with Stripe

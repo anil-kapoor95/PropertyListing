@@ -450,6 +450,7 @@ class pjEmail
 		    }
 		    if (!$mail->send())
 		    {
+		        $this->errorMessage = $mail->ErrorInfo;
 		        $this->errorCode = 104;
 		        $this->log(104);
 		        return false;
@@ -457,11 +458,11 @@ class pjEmail
 		        return true;
 		    }
 		}catch (pjException $e) {
-		    $this->errorMessage = $e->errorMessage();
+		    $this->errorMessage = $e->getMessage();
 		    $this->log($e->errorMessage());
 		    return false;
 		} catch (Exception $e) {
-		    $this->errorMessage = $e->errorMessage();
+		    $this->errorMessage = $e->getMessage();
 		    $this->log($e->errorMessage());
 		    return false;
 		}
@@ -826,6 +827,16 @@ class pjEmail
             return $this->errorMessage;
         }
     }
+    
+/**
+ * Return the technical reason of the last failure (e.g. the SMTP server answer), if any
+ *
+ * @return string
+ */
+    public function getErrorDetail()
+    {
+        return is_null($this->errorMessage) ? '' : trim(strip_tags((string) $this->errorMessage));
+    }
 /**
  * Write log using pjBase plugin, before then we need to set logger.
  * From the controller we should set like
@@ -852,4 +863,4 @@ class pjEmail
         }
     }
 }
-?>
+?>

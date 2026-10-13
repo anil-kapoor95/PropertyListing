@@ -133,23 +133,14 @@ class pjAdmin extends pjAppController
 			} else {
 				$user = $user[0];
 				$from = $this->getFromEmail($this->option_arr);
+			$from_name = $this->getFromName($this->option_arr);
 				$Email = new pjEmail();
 				$Email
 					->setTo($user['email'])
-					->setFrom($from)
+					->setFrom($from, $from_name)
 					->setSubject(__('emailForgotSubject', true));
 				
-				if ($this->option_arr['o_send_email'] == 'smtp')
-				{
-					$Email
-						->setTransport('smtp')
-						->setSmtpHost($this->option_arr['o_smtp_host'])
-						->setSmtpPort($this->option_arr['o_smtp_port'])
-						->setSmtpUser($this->option_arr['o_smtp_user'])
-						->setSmtpPass($this->option_arr['o_smtp_pass'])
-						->setSender($this->option_arr['o_smtp_user'])
-					;
-				}
+				pjAppController::applyEmailTransport($Email, $this->option_arr);
 				
 				$body = str_replace(
 					array('{Name}', '{Password}'),
@@ -279,4 +270,4 @@ class pjAdmin extends pjAppController
 		}
 	}
 }
-?>
+?>

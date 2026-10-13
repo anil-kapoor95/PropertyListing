@@ -68,6 +68,13 @@ include_once dirname(__FILE__) . '/elements/icons.php';
 					<span class="t11-count"><?php echo t11_icon('img'); ?><?php echo $gcount; ?> <?php echo pjSanitize::html(t11_label('t11_photos', 'photos')); ?></span>
 				</div>
 				<?php
+			} else {
+				// no photos uploaded: show the default image
+				?>
+				<div class="t11-gallery t11-g1 t11-nophoto">
+					<span class="t11-g-main"><img src="<?php echo PJ_INSTALL_URL . PJ_TEMPLATE_PATH . PJ_TEMPLATE_SCRIPT_PATH . 'images/t11_no_photo.svg'; ?>" alt="<?php echo $listing_title; ?>"></span>
+				</div>
+				<?php
 			}
 			?>
 
@@ -159,7 +166,7 @@ include_once dirname(__FILE__) . '/elements/icons.php';
 				<div class="modal-dialog">
 				    <div class="modal-content">
 				      	<div class="modal-header">
-				        	<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+				        	<button type="button" class="close" data-dismiss="modal" data-pj-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
 				        	<h4 class="modal-title" id="myModalLabel"><?php __('front_request_details');?></h4>
 				      	</div>
 				      	<div class="modal-body">
@@ -203,7 +210,7 @@ include_once dirname(__FILE__) . '/elements/icons.php';
 							</form>
 				      	</div>
 				      	<div class="modal-footer">
-				        	<button type="button" class="btn btn-default pjPplBtnNav" data-dismiss="modal"><?php __('front_layout1_close');?></button>
+				        	<button type="button" class="btn btn-default pjPplBtnNav" data-dismiss="modal" data-pj-dismiss="modal"><?php __('front_layout1_close');?></button>
 				        	<button type="button" class="btn btn-default btnSendContact"><?php __('front_layout1_send');?></button>
 				      	</div>
 				    </div>
