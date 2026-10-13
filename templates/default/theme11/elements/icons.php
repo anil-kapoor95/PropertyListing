@@ -23,7 +23,12 @@ if (!function_exists('t11_icon'))
 			'search'=> '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/>',
 			'home'  => '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
 			'ruler' => '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
-			'cal2'  => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/>'
+			'cal2'  => '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/>',
+			'lock'  => '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+			'eye'   => '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+			'shield'=> '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+			'login' => '<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>',
+			'userplus' => '<circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-3.5 3-6 7-6s7 2.5 7 6M19 8v6M16 11h6"/>'
 		);
 		if (!isset($paths[$name])) { return ''; }
 		return '<svg class="' . $class . '" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $paths[$name] . '</svg>';

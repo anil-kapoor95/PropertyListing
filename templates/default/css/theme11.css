@@ -376,3 +376,49 @@ body.t11-print-body, body:has(.t11-printpage) { margin: 0; background: var(--t11
 	#lbMain #lbDetailsData, #lbMain #lbDetailsData.grey { padding: 0 10px 8px; }
 	#lbMain #lbClose, #lbMain #lbClose.grey { width: 32px; height: 32px; }
 }
+
+/* ==========================================================================
+	Theme 11 - Login / Create an Account (pjActionAccount)
+========================================================================== */
+[id^=pjWrapper] .t11-acc-stage { display: flex; justify-content: center; padding: 34px 0 10px; }
+[id^=pjWrapper] .t11-acc-card { width: 100%; max-width: 520px; background: var(--t11-card); border-radius: 22px; box-shadow: var(--t11-shadow); padding: 30px 34px 30px; }
+[id^=pjWrapper] .t11-acc-avatar { width: 58px; height: 58px; border-radius: 18px; margin: 0 auto 16px; background: linear-gradient(135deg, var(--t11-active), color-mix(in srgb, var(--t11-active) 70%, #fff)); color: var(--t11-header); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 18px color-mix(in srgb, var(--t11-active) 40%, transparent); }
+[id^=pjWrapper] .t11-acc-avatar .t11-i { width: 28px; height: 28px; }
+[id^=pjWrapper] .t11-acc-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--t11-inactive); border-radius: 13px; padding: 4px; margin-bottom: 24px; }
+[id^=pjWrapper] .t11-acc-tab { white-space: nowrap; border: 0; background: transparent; font: inherit; font-weight: 700; color: var(--t11-heading); padding: 10px 8px; border-radius: 10px; cursor: pointer; display: flex; gap: 8px; align-items: center; justify-content: center; transition: background .15s, box-shadow .15s; }
+[id^=pjWrapper] .t11-acc-tab .t11-i { width: 16px; height: 16px; }
+[id^=pjWrapper] .t11-acc-tab.on { background: var(--t11-card); box-shadow: 0 2px 8px color-mix(in srgb, var(--t11-heading) 18%, transparent); }
+[id^=pjWrapper] .t11-acc-card .t11-acc-form { display: none; background: none; box-shadow: none; border-radius: 0; padding: 0; margin: 0; }
+[id^=pjWrapper] .t11-acc-card .t11-acc-form.on { display: block; }
+[id^=pjWrapper] .t11-acc-title { margin: 0 0 6px; text-align: center; font-size: 26px; color: var(--t11-heading); }
+[id^=pjWrapper] .t11-acc-sub { margin: 0 0 24px; text-align: center; line-height: 1.5; color: var(--t11-body); }
+[id^=pjWrapper] .t11-acc-card .form-group { margin-bottom: 14px; }
+[id^=pjWrapper] .t11-field { position: relative; }
+[id^=pjWrapper] .t11-field .t11-fi { position: absolute; left: 15px; top: 16px; width: 18px; height: 18px; color: var(--t11-accent); pointer-events: none; z-index: 2; }
+[id^=pjWrapper] .t11-acc-card .t11-field .form-control { height: 50px; padding-left: 44px; padding-right: 44px; border-radius: 13px; }
+[id^=pjWrapper] .t11-eye { position: absolute; right: 8px; top: 8px; width: 34px; height: 34px; border: 0; background: none; color: var(--t11-body); cursor: pointer; border-radius: 8px; padding: 0; display: flex; align-items: center; justify-content: center; z-index: 2; }
+[id^=pjWrapper] .t11-eye .t11-i { width: 18px; height: 18px; }
+[id^=pjWrapper] .t11-eye:hover, [id^=pjWrapper] .t11-eye.on { color: var(--t11-accent); }
+[id^=pjWrapper] .t11-acc-two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+[id^=pjWrapper] .t11-cap { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+[id^=pjWrapper] .t11-capimg { height: 50px; border: 1.5px dashed var(--t11-inactive); border-radius: 13px; padding: 0 8px; display: flex; align-items: center; background: color-mix(in srgb, var(--t11-active) 8%, var(--t11-card)); }
+[id^=pjWrapper] .t11-capimg img { height: 38px; width: auto; display: block; cursor: pointer; border-radius: 6px; }
+[id^=pjWrapper] .t11-cap > em { grid-column: 1 / -1; }
+[id^=pjWrapper] .t11-acc-card .t11-acc-btn { width: 100%; height: 50px; border-radius: 13px; font-size: 15px; font-weight: 800; }
+[id^=pjWrapper] .t11-acc-link { display: block; text-align: center; margin-top: 16px; font-weight: 700; color: var(--t11-accent); }
+[id^=pjWrapper] .t11-acc-switch { text-align: center; margin: 18px 0 0; padding-top: 16px; border-top: 1px dashed var(--t11-line); font-size: 14px; color: var(--t11-body); }
+[id^=pjWrapper] .t11-acc-switch a { font-weight: 700; color: var(--t11-accent); }
+[id^=pjWrapper] .t11-acc-card em { display: block; font-style: normal; margin-top: 6px; }
+[id^=pjWrapper] .t11-acc-card label.err { color: #b3382c; font-size: 13px; font-weight: 500; margin: 0; }
+[id^=pjWrapper] .t11-acc-card .t11-cap + em { margin: -6px 0 14px; }
+[id^=pjWrapper] .t11-acc-card .alert { border-radius: 12px; margin: 0; }
+@media (max-width: 600px) {
+	[id^=pjWrapper] .t11-acc-stage { padding-top: 20px; }
+	[id^=pjWrapper] .t11-acc-card { padding: 22px 18px 24px; border-radius: 18px; }
+	[id^=pjWrapper] .t11-acc-title { font-size: 22px; }
+	[id^=pjWrapper] .t11-acc-two { grid-template-columns: 1fr; }
+	[id^=pjWrapper] .t11-cap { grid-template-columns: 1fr; }
+	[id^=pjWrapper] .t11-capimg { justify-content: center; width: 100%; box-sizing: border-box; }
+	[id^=pjWrapper] .t11-acc-tab { font-size: 13px; gap: 6px; padding: 10px 4px; }
+	[id^=pjWrapper] .t11-acc-tab .t11-i { width: 15px; height: 15px; flex: 0 0 auto; }
+}
