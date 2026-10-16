@@ -26,9 +26,11 @@ $index = mt_rand(1, 9999);
 					if(isset($_GET['err']))
 					{ 
 						$forgot_err = __('forgot_err', true);
+						$forgot_err_code = (int) $_GET['err'];
+						$forgot_err_text = (is_array($forgot_err) && isset($forgot_err[$forgot_err_code]) && $forgot_err[$forgot_err_code] !== '') ? $forgot_err[$forgot_err_code] : ($forgot_err_code == 104 ? 'We could not find an account with this email address.' : 'Something went wrong. Please try again.');
 						?>
 						<div class="form-group">
-							<div class="alert alert-danger" role="alert"><?php echo $forgot_err[$_GET['err']];?></div>
+							<div class="alert alert-danger" role="alert"><?php echo $forgot_err_text;?></div>
 						</div>
 						<?php
 					} 
@@ -37,7 +39,7 @@ $index = mt_rand(1, 9999);
 						$forgot_statuses = __('forgot_statuses', true);
 						?>
 						<div class="form-group">
-							<div class="alert alert-success" role="alert"><?php echo $forgot_statuses[$_GET['status']];?></div>
+							<div class="alert alert-success" role="alert"><?php echo isset($forgot_statuses[$_GET['status']]) ? $forgot_statuses[$_GET['status']] : '';?></div>
 						</div>
 						<?php
 					} 
