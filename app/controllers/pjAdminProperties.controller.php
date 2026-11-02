@@ -635,7 +635,14 @@ class pjAdminProperties extends pjAdmin
 					$geo = pjAdminProperties::pjActionGeocode($_POST, $this->option_arr);
 				}
 
-				$is_writable = false;
+				// "Directory permission" message (AP10) is only for a floor plan file that was chosen but could not be stored.
+				// A save without a file, or with a file that was stored, ends with the normal "updated" message.
+				$is_writable = true;
+				if (isset($_FILES['file']) && isset($_FILES['file']['error']) && $_FILES['file']['error'] != 4)
+				{
+					// a file was chosen: treat it as not stored until pjUpload::save() succeeds below
+					$is_writable = false;
+				}
 				if (isset($_FILES['file']) && !empty($_FILES['file']['tmp_name']))
 				{
 					$has_error = false;
@@ -643,10 +650,8 @@ class pjAdminProperties extends pjAdmin
 					{
 						$has_error = true;
 					}
-					if (is_writable('app/web/upload/files'))
+					if (!is_writable(PJ_INSTALL_PATH . PJ_UPLOAD_PATH . 'files'))
 					{
-						$is_writable = true;
-					}else{
 						$has_error = true;
 					}
 					if($has_error == false)
@@ -667,6 +672,7 @@ class pjAdminProperties extends pjAdmin
 								$data['floor_plan_filename'] = $_FILES['file']['name'];
 								$data['floor_plan_mime'] = $_FILES['file']['type'];
 								$data['floor_plan_hash'] = $hash;
+							$is_writable = true;
 							}
 						}
 					}
